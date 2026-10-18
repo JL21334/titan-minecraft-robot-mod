@@ -1,0 +1,26 @@
+name: Build mod
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Build
+        shell: bash
+        run: |
+          chmod +x gradlew
+          if ! ./gradlew build --no-daemon > build.log 2>&1; then
+            grep -E "error:|What went wrong|Could not|FAILED|Caused by" -A3 build.log | head -40 | awk '{printf "%s%%0A", $0}' > err.txt
+            echo "::error title=Build failed::$(cat err.txt)"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mod-jar
+          path: build/libs/*.jar
